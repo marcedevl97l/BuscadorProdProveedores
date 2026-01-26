@@ -4,537 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buscador Unificado</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 50px 40px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-
-        h2 {
-            font-size: 3em;
-            font-weight: 700;
-            margin-bottom: 15px;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .subtitle {
-            font-size: 1.1em;
-            opacity: 0.95;
-            position: relative;
-            z-index: 1;
-        }
-
-        .search-section {
-            padding: 50px 40px;
-            background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
-        }
-
-        form {
-            display: flex;
-            gap: 12px;
-            max-width: 1000px;
-            margin: 0 auto;
-            align-items: center;
-        }
-
-        select {
-            padding: 18px 28px;
-            border: 2px solid #e2e8f0;
-            border-radius: 60px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            outline: none;
-            background: white;
-            min-width: 200px;
-        }
-
-        select:focus {
-            border-color: #2a5298;
-            box-shadow: 0 0 0 4px rgba(42, 82, 152, 0.1);
-            transform: translateY(-2px);
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 18px 28px;
-            border: 2px solid #e2e8f0;
-            border-radius: 60px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            outline: none;
-            background: white;
-        }
-
-        input[type="text"]:focus {
-            border-color: #2a5298;
-            box-shadow: 0 0 0 4px rgba(42, 82, 152, 0.1);
-            transform: translateY(-2px);
-        }
-
-        button[type="submit"] {
-            padding: 18px 45px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            border: none;
-            border-radius: 60px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 6px 20px rgba(30, 60, 114, 0.3);
-        }
-
-        button[type="submit"]:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(30, 60, 114, 0.4);
-        }
-
-        button[type="submit"]:active {
-            transform: translateY(-1px);
-        }
-
-        .fuentes-info {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid #0ea5e9;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin: 20px 40px;
-            font-size: 14px;
-            color: #0c4a6e;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
-        }
-
-        .fuentes-info h4 {
-            margin: 0;
-            font-weight: 700;
-            color: #0369a1;
-        }
-
-        .results-section {
-            padding: 40px;
-        }
-
-        .results-header {
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .results-title {
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .results-count {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .view-toggle {
-            display: flex;
-            gap: 10px;
-            background: #f1f5f9;
-            padding: 4px;
-            border-radius: 12px;
-        }
-
-        .view-btn {
-            padding: 8px 20px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            color: #64748b;
-            transition: all 0.3s ease;
-        }
-
-        .view-btn.active {
-            background: white;
-            color: #1e3c72;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Vista de Comparación */
-        .comparison-view {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-        }
-
-        .source-column {
-            background: white;
-            border-radius: 16px;
-            border: 2px solid #e2e8f0;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease;
-        }
-
-        .source-column:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .source-header {
-            padding: 20px;
-            font-weight: 700;
-            font-size: 16px;
-            text-align: center;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .source-header.pionero {
-            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-        }
-
-        .source-header.prosalud {
-            background: linear-gradient(135deg, #10b981 0%, #065f46 100%);
-        }
-
-        .source-header.farmacom {
-            background: linear-gradient(135deg, #a855f7 0%, #6b21a8 100%);
-        }
-
-        .source-header.web {
-            background: linear-gradient(135deg, #f97316 0%, #9a3412 100%);
-        }
-
-        .source-header.otro {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-        }
-
-        .product-card {
-            padding: 18px;
-            border-bottom: 1px solid #f1f5f9;
-            transition: background 0.2s ease;
-        }
-
-        .product-card:last-child {
-            border-bottom: none;
-        }
-
-        .product-card:hover {
-            background: #f8fafc;
-        }
-
-        .product-name {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 10px;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
-        .product-details {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-
-        .detail-label {
-            color: #64748b;
-            font-weight: 500;
-        }
-
-        .codigo-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            background: #f1f5f9;
-            color: #64748b;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-        }
-
-        .proveedor-text {
-            color: #475569;
-            font-weight: 600;
-            font-size: 13px;
-        }
-
-        .precio-container {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 6px 14px;
-            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-            border: 2px solid #86efac;
-            border-radius: 8px;
-            font-weight: 800;
-            color: #166534;
-            font-size: 15px;
-            box-shadow: 0 2px 6px rgba(22, 101, 52, 0.1);
-        }
-
-        .precio-mejor {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #fbbf24;
-            color: #92400e;
-            position: relative;
-        }
-
-        .precio-mejor::after {
-            content: '⭐ MEJOR';
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #fbbf24;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 900;
-            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
-        }
-
-        .empty-state {
-            padding: 40px;
-            text-align: center;
-            color: #94a3b8;
-            font-size: 14px;
-        }
-
-        /* Vista de Lista (original) */
-        .list-view {
-            display: none;
-        }
-
-        .list-view.active {
-            display: block;
-        }
-
-        .comparison-view.active {
-            display: grid;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e2e8f0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-
-        th {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 20px 18px;
-            text-align: left;
-            font-weight: 700;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        td {
-            padding: 18px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-            font-size: 15px;
-        }
-
-        tr:hover {
-            background: #f8fafc;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .fuente-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .fuente-pionero {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            border: 2px solid #60a5fa;
-            color: #1e40af;
-        }
-
-        .fuente-prosalud {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            border: 2px solid #6ee7b7;
-            color: #065f46;
-        }
-
-        .fuente-farmacom {
-            background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);
-            border: 2px solid #c084fc;
-            color: #6b21a8;
-        }
-
-        .fuente-web {
-            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-            border: 2px solid #fb923c;
-            color: #9a3412;
-        }
-
-        .fuente-otro {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            border: 2px solid #cbd5e1;
-            color: #475569;
-        }
-
-        @media (max-width: 768px) {
-            h2 {
-                font-size: 2em;
-            }
-
-            .header {
-                padding: 35px 25px;
-            }
-
-            .search-section {
-                padding: 35px 25px;
-            }
-
-            form {
-                flex-direction: column;
-            }
-
-            button[type="submit"] {
-                width: 100%;
-            }
-
-            .results-section {
-                padding: 25px 15px;
-            }
-
-            .comparison-view {
-                grid-template-columns: 1fr;
-            }
-
-            .results-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
-    <script>
-        // Detectar cuando se cierra la pestaña
-        window.addEventListener('beforeunload', function() {
-            navigator.sendBeacon('/ping');
-        });
-
-        // Mantener viva la conexión cada 20 segundos
-        setInterval(function() {
-            fetch('/ping').catch(err => console.log('Servidor cerrado'));
-        }, 20000);
-
-        // Toggle entre vistas
-        function toggleView(view) {
-            const comparisonView = document.getElementById('comparison-view');
-            const listView = document.getElementById('list-view');
-            const comparisonBtn = document.getElementById('comparison-btn');
-            const listBtn = document.getElementById('list-btn');
-
-            if (view === 'comparison') {
-                comparisonView.classList.add('active');
-                listView.classList.remove('active');
-                comparisonBtn.classList.add('active');
-                listBtn.classList.remove('active');
-            } else {
-                comparisonView.classList.remove('active');
-                listView.classList.add('active');
-                comparisonBtn.classList.remove('active');
-                listBtn.classList.add('active');
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h2>🔍 Buscador de Productos</h2>
             <p class="subtitle">Sistema unificado de búsqueda y comparación de precios</p>
+            <div class="header-actions">
+                <button class="cart-btn" onclick="toggleCart()">🛒 Carrito (<span id="cart-count">0</span>)</button>
+                <a href="/logout" class="logout-btn">Cerrar Sesión</a>
+            </div>
         </div>
         
         <div class="fuentes-info">
@@ -633,6 +115,14 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="cart-controls">
+                                    <div class="quantity-controls">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(this, -1)">-</button>
+                                        <input type="number" class="qty-input" value="1" min="1" onchange="updateSubtotal(this)">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(this, 1)">+</button>
+                                    </div>
+                                    <button type="button" class="add-to-cart-btn" data-nombre="{{ producto[0] }}" data-proveedor="{{ producto[2] }}" data-precio="{{ precio }}" data-fuente="{{ fuente }}" onclick="addToCartFromButton(this)">🛒 Agregar al Carrito</button>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
@@ -650,6 +140,7 @@
                                 <th>Proveedor</th>
                                 <th>Precio</th>
                                 <th>Fuente</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -678,6 +169,14 @@
                                         <span class="fuente-badge fuente-otro">📋 {{ r[4].split('|')[0] }}</span>
                                     {% endif %}
                                 </td>
+                                <td class="cart-controls-cell">
+                                    <div class="quantity-controls">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(this, -1)">-</button>
+                                        <input type="number" class="qty-input" value="1" min="1" onchange="updateSubtotal(this)">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(this, 1)">+</button>
+                                    </div>
+                                    <button type="button" class="add-to-cart-btn" data-nombre="{{ r[0] }}" data-proveedor="{{ r[2] }}" data-precio="{{ r[3]|float }}" data-fuente="{{ r[4].split('|')[0] }}" onclick="addToCartFromButton(this)">🛒 Agregar</button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -686,6 +185,23 @@
             </div>
         </div>
         {% endif %}
+
+        <!-- Panel del Carrito -->
+        <div id="cart-panel" class="cart-panel">
+            <div class="cart-header">
+                <h3>🛒 Carrito de Compras</h3>
+                <button class="cart-toggle" onclick="toggleCart()">✕</button>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <!-- Items del carrito se agregarán aquí -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <strong>Total: S/ <span id="cart-total">0.00</span></strong>
+                </div>
+                <button class="export-btn" onclick="exportToWord()">📄 Exportar a Word</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>

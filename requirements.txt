@@ -1,6 +1,8 @@
 Flask
+Flask-Login
 playwright
 pandas
 openpyxl
 beautifulsoup4
 requests
+python-docx

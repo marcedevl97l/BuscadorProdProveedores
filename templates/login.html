@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Buscador Unificado</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+    <div class="login-wrapper">
+        <div class="image-section">
+            <div class="image-placeholder">
+                <img src="{{ url_for('static', filename='images/farmacos.jpg') }}" alt="Logo del Cliente" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="form-container">
+                <h1>Iniciar Sesión</h1>
+                <p class="subtitle">Accede a tu cuenta para continuar</p>
+
+                {% if error %}
+                <script>
+                    alert("{{ error }}");
+                </script>
+                {% endif %}
+
+                <form method="POST">
+                    <div class="input-group">
+                        <label for="username">Usuario</label>
+                        <input type="text" id="username" name="username" placeholder="Ingresa tu usuario" required autofocus>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">Contraseña</label>
+                        <input type="password" id="password" name="password" placeholder="Ingresa tu contraseña" required>
+                    </div>
+
+                    <button type="submit" class="login-btn">Iniciar Sesión</button>
+                </form>
+
+                <div class="forgot-password">
+                    <a href="#" onclick="showSupportMessage(event)">¿Olvidaste tu contraseña?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-icon">💬</div>
+            <h3>Contacta a Soporte</h3>
+            <p>Para recuperar tu contraseña, por favor contacta al equipo de soporte técnico.</p>
+            <button onclick="closeModal()" class="modal-btn">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        function showSupportMessage(event) {
+            event.preventDefault();
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        document.getElementById('modal-overlay').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
