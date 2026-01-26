@@ -4,12 +4,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 from config import DB
 from datetime import datetime
-from docx import Document
-from docx.shared import Inches
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_this_in_production'
+
 
 # Configurar Flask-Login
 login_manager = LoginManager()
@@ -126,62 +127,86 @@ def export_cart():
     if not cart_data:
         return {'error': 'No cart data provided'}, 400
 
-    # Crear documento Word
-    doc = Document()
-    doc.add_heading('Lista de Compras', 0)
-
+    # Crear workbook Excel
+    wb = Workbook()
+    
+    # Hoja principal
+    ws_main = wb.active
+    ws_main.title = "Lista de Compras"
+    
     # Agregar fecha y hora
     now = datetime.now()
-    doc.add_paragraph(f'Fecha y hora: {now.strftime("%d/%m/%Y %H:%M")}')
-
-    # Agrupar por fuente
+    ws_main['A1'] = f'Fecha y hora: {now.strftime("%d/%m/%Y %H:%M")}'
+    ws_main['A1'].font = Font(bold=True)
+    
+    # Headers
+    ws_main['A3'] = 'Fuente'
+    ws_main['B3'] = 'Producto'
+    ws_main['C3'] = 'Cantidad'
+    for cell in ['A3', 'B3', 'C3']:
+        ws_main[cell].font = Font(bold=True)
+        ws_main[cell].alignment = Alignment(horizontal='center')
+    
+    # Agrupar por fuente (usando solo el nombre principal)
     fuentes = {}
     total_general = 0
 
     for item in cart_data:
-        fuente = item['fuente']
-        if fuente not in fuentes:
-            fuentes[fuente] = []
-        fuentes[fuente].append(item)
+        fuente_main = item['fuente'].split(' | ')[0]
+        if fuente_main not in fuentes:
+            fuentes[fuente_main] = []
+        fuentes[fuente_main].append(item)
         total_general += item['subtotal']
 
-    # Crear tabla para cada fuente
+    # Llenar la hoja principal
+    row = 4
     for fuente, items in fuentes.items():
-        doc.add_heading(f'Fuente: {fuente}', level=1)
+        # Encabezado de fuente
+        ws_main[f'A{row}'] = fuente
+        ws_main[f'A{row}'].font = Font(bold=True)
+        row += 1
         
-        table = doc.add_table(rows=1, cols=4)
-        hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'Producto'
-        hdr_cells[1].text = 'Cantidad'
-        hdr_cells[2].text = 'Precio Unit.'
-        hdr_cells[3].text = 'Subtotal'
-
-        total_fuente = 0
         for item in items:
-            row_cells = table.add_row().cells
-            row_cells[0].text = item['nombre']
-            row_cells[1].text = str(item['cantidad'])
-            row_cells[2].text = f"S/ {item['precio']:.2f}"
-            row_cells[3].text = f"S/ {item['subtotal']:.2f}"
-            total_fuente += item['subtotal']
-
-        # Total por fuente
-        row_cells = table.add_row().cells
-        row_cells[0].text = 'TOTAL'
-        row_cells[1].text = ''
-        row_cells[2].text = ''
-        row_cells[3].text = f"S/ {total_fuente:.2f}"
+            ws_main[f'B{row}'] = item['nombre']
+            ws_main[f'C{row}'] = item['cantidad']
+            row += 1
+        
+        row += 1  # Espacio entre grupos
 
     # Total general
-    doc.add_paragraph('')
-    doc.add_paragraph(f'TOTAL GENERAL: S/ {total_general:.2f}')
+    ws_main[f'A{row}'] = 'TOTAL GENERAL'
+    ws_main[f'A{row}'].font = Font(bold=True)
+    ws_main[f'C{row}'] = f'S/ {total_general:.2f}'
+    row += 1
+
+    # Hoja de proveedores
+    ws_prov = wb.create_sheet("Proveedores")
+    ws_prov['A1'] = 'Producto'
+    ws_prov['B1'] = 'Cantidad'
+    ws_prov['C1'] = 'Proveedor'
+    for cell in ['A1', 'B1', 'C1']:
+        ws_prov[cell].font = Font(bold=True)
+        ws_prov[cell].alignment = Alignment(horizontal='center')
+    
+    row = 2
+    for item in cart_data:
+        ws_prov[f'A{row}'] = item['nombre']
+        ws_prov[f'B{row}'] = item['cantidad']
+        ws_prov[f'C{row}'] = item['proveedor']
+        row += 1
+
+    # Ajustar ancho de columnas
+    for ws in [ws_main, ws_prov]:
+        ws.column_dimensions['A'].width = 30
+        ws.column_dimensions['B'].width = 40
+        ws.column_dimensions['C'].width = 15
 
     # Guardar en memoria
     bio = BytesIO()
-    doc.save(bio)
+    wb.save(bio)
     bio.seek(0)
 
-    return send_file(bio, as_attachment=True, download_name='lista_compras.docx', mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    return send_file(bio, as_attachment=True, download_name='lista_compras.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 if __name__ == "__main__":
     app.run(debug=True)

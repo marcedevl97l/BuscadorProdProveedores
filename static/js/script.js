@@ -161,7 +161,7 @@ function toggleCart() {
     panel.classList.toggle('active');
 }
 
-function exportToWord() {
+function exportToExcel() {
     if (cart.length === 0) {
         alert('El carrito está vacío');
         return;
@@ -185,7 +185,7 @@ function exportToWord() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'lista_compras.docx';
+        a.download = 'lista_compras.xlsx';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
