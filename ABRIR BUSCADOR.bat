@@ -1,26 +1,29 @@
 @echo off
+setlocal EnableDelayedExpansion
 chcp 65001 >nul
 color 0B
 cls
 
 echo.
-echo 
+echo
 echo    INICIO RAPIDO - Buscador de Productos
-echo 
+echo
 echo.
 
 REM Verificar que existe la base de datos (en ambas ubicaciones posibles)
 set DB_ENCONTRADA=0
+
 if exist db.sqlite (
     set DB_ENCONTRADA=1
     echo    Base de datos encontrada: db.sqlite
 )
+
 if exist data\db.sqlite (
     set DB_ENCONTRADA=1
     echo    Base de datos encontrada: data\db.sqlite
 )
 
-if %DB_ENCONTRADA%==0 (
+if "!DB_ENCONTRADA!"=="0" (
     echo    ERROR: No existe la base de datos
     echo.
     echo    Ejecuta primero: INICIAR_PROYECTO.bat
@@ -35,7 +38,7 @@ echo    Abriendo: http://localhost:5000
 echo.
 echo    Presiona Ctrl+C para detener el servidor
 echo.
-echo 
+echo.
 echo.
 
 REM Abrir navegador después de 2 segundos
@@ -46,3 +49,4 @@ REM Iniciar Flask
 python app.py
 
 pause
+goto menu
