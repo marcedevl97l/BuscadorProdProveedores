@@ -4,9 +4,9 @@ color 0B
 cls
 
 echo.
-echo ================================================================
+echo 
 echo    INICIO RAPIDO - Buscador de Productos
-echo ================================================================
+echo 
 echo.
 
 REM Verificar que existe la base de datos (en ambas ubicaciones posibles)
@@ -35,7 +35,7 @@ echo    Abriendo: http://localhost:5000
 echo.
 echo    Presiona Ctrl+C para detener el servidor
 echo.
-echo ================================================================
+echo 
 echo.
 
 REM Abrir navegador después de 2 segundos
