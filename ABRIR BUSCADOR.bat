@@ -5,48 +5,43 @@ color 0B
 cls
 
 echo.
-echo
-echo    INICIO RAPIDO - Buscador de Productos
-echo
+echo INICIO RAPIDO - Buscador de Productos
 echo.
 
-REM Verificar que existe la base de datos (en ambas ubicaciones posibles)
 set DB_ENCONTRADA=0
 
 if exist db.sqlite (
     set DB_ENCONTRADA=1
-    echo    Base de datos encontrada: db.sqlite
+    echo Base de datos encontrada: db.sqlite
 )
 
 if exist data\db.sqlite (
     set DB_ENCONTRADA=1
-    echo    Base de datos encontrada: data\db.sqlite
+    echo Base de datos encontrada: data\db.sqlite
 )
+
+echo DB_ENCONTRADA = !DB_ENCONTRADA!
 
 if "!DB_ENCONTRADA!"=="0" (
-    echo    ERROR: No existe la base de datos
-    echo.
-    echo    Ejecuta primero: INICIAR_PROYECTO.bat
-    echo       para crear la base de datos y cargar los productos
+    echo ERROR: No existe la base de datos
+    echo Ejecuta primero: INICIAR_PROYECTO.bat
     echo.
     pause
-    exit /b 1
+    goto :eof
 )
 
-echo    Iniciando servidor...
-echo    Abriendo: http://localhost:5000
+echo Iniciando servidor...
+echo Abriendo: http://localhost:5000
 echo.
-echo    Presiona Ctrl+C para detener el servidor
-echo.
-echo.
+echo Presiona Ctrl+C para detener el servidor
 echo.
 
-REM Abrir navegador después de 2 segundos
 timeout /t 2 /nobreak >nul
 start http://localhost:5000
 
-REM Iniciar Flask
-python app.py
+echo Ejecutando: python app.py
+call python app.py
 
+echo.
+echo El servidor se detuvo.
 pause
-goto menu
