@@ -16,6 +16,11 @@ echo    4. Salir
 echo.
 set /p opcion="Selecciona una opcion (1-4): "
 
+set "PYTHON_EXE=python"
+if exist "%CD%\.venv\Scripts\python.exe" (
+    set "PYTHON_EXE=%CD%\.venv\Scripts\python.exe"
+)
+
 if "%opcion%"=="1" goto actualizar_excel
 if "%opcion%"=="2" goto actualizar_farmacom
 if "%opcion%"=="3" goto actualizar_todo
@@ -33,7 +38,7 @@ echo ================================================================
 echo.
 
 echo [1/2] Actualizando datos de Excel...
-python recolector.py
+"%PYTHON_EXE%" recolector.py
 if %ERRORLEVEL% NEQ 0 (
     echo       Error al recargar datos de Excel
     pause
@@ -56,7 +61,7 @@ echo ================================================================
 echo.
 
 echo [1/1] Recargando datos de Farmacom...
-python scraper_farmacom.py
+"%PYTHON_EXE%" scraper_farmacom.py
 if %ERRORLEVEL% NEQ 0 (
     echo       Error al recargar datos de Farmacom
     pause
@@ -92,7 +97,7 @@ echo.
 
 REM 2. CREAR BASE DE DATOS NUEVA
 echo [2/4] Creando base de datos...
-python init_db.py
+"%PYTHON_EXE%" init_db.py
 if %ERRORLEVEL% NEQ 0 (
     echo       Error al crear base de datos
     pause
@@ -102,7 +107,7 @@ echo.
 
 REM 3. RECARGAR DATOS DESDE EXCEL
 echo [3/4] Recargando datos de Excel...
-python recolector.py
+"%PYTHON_EXE%" recolector.py
 if %ERRORLEVEL% NEQ 0 (
     echo       Error al recargar datos de Excel
     pause
@@ -112,7 +117,7 @@ echo.
 
 REM 4. RECARGAR DATOS DE FARMACOM
 echo [4/4] Recargando datos de Farmacom...
-python scraper_farmacom.py
+"%PYTHON_EXE%" scraper_farmacom.py
 if %ERRORLEVEL% NEQ 0 (
     echo       Error al recargar datos de Farmacom
     pause

@@ -1,3 +1,5 @@
+import math
+import os
 from flask import Flask, render_template, request, session, redirect, url_for, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -7,15 +9,46 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from io import BytesIO
+from normalizador import limpiar
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_key_change_this_in_production'
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_key_change_this_in_production')
 
 
 # Configurar Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+def ensure_schema():
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS productos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT,
+        codigo TEXT,
+        proveedor TEXT,
+        precio REAL,
+        precio_escala REAL,
+        fuente TEXT,
+        url TEXT,
+        escala TEXT,
+        texto_busqueda TEXT
+    )
+    """)
+    c.execute("PRAGMA table_info(productos)")
+    columns = [row[1] for row in c.fetchall()]
+    if "url" not in columns:
+        c.execute("ALTER TABLE productos ADD COLUMN url TEXT")
+    if "escala" not in columns:
+        c.execute("ALTER TABLE productos ADD COLUMN escala TEXT")
+    if "precio_escala" not in columns:
+        c.execute("ALTER TABLE productos ADD COLUMN precio_escala REAL")
+    conn.commit()
+    conn.close()
+
+ensure_schema()
 
 class User(UserMixin):
     def __init__(self, id, username, password_hash):
@@ -72,6 +105,13 @@ def index():
     proveedores = []
     fuentes = []
     fecha_actualizacion = datetime.now().strftime("%d/%m/%Y %H:%M")
+    current_q = ""
+    current_proveedor = "todos"
+    current_sort = "nombre_asc"
+    page = 1
+    per_page = 50
+    total_count = 0
+    total_pages = 0
 
     # Obtener proveedores y fuentes únicos
     conn = sqlite3.connect(DB)
@@ -85,30 +125,57 @@ def index():
     conn.close()
 
     if request.method == "POST":
-        q = request.form["q"].lower()
-        proveedor_filtro = request.form.get("proveedor", "todos")
+        q_raw = request.form.get("q", "")
+        current_q = q_raw
+        q = limpiar(q_raw)
+        current_proveedor = request.form.get("proveedor", "todos")
+        current_sort = request.form.get("sort", "nombre_asc")
+        page = max(1, int(request.form.get("page", 1)))
+
+        where_clauses = []
+        params = []
+
+        if q:
+            where_clauses.append("texto_busqueda LIKE ?")
+            params.append(f"%{q}%")
+
+        if current_proveedor != "todos":
+            where_clauses.append("proveedor = ?")
+            params.append(current_proveedor)
+
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        sort_map = {
+            "nombre_asc": "nombre ASC",
+            "nombre_desc": "nombre DESC"
+        }
+        order_by = sort_map.get(current_sort, "nombre ASC")
 
         conn = sqlite3.connect(DB)
         c = conn.cursor()
 
-        query = """
-            SELECT nombre, codigo, proveedor, precio, fuente
+        count_query = f"SELECT COUNT(*) FROM productos WHERE {where_sql}"
+        c.execute(count_query, params)
+        total_count = c.fetchone()[0]
+        total_pages = max(1, math.ceil(total_count / per_page)) if total_count > 0 else 0
+
+        if total_pages > 0 and page > total_pages:
+            page = total_pages
+
+        query = f"""
+            SELECT nombre, codigo, proveedor, precio, fuente, escala, precio_escala
             FROM productos
-            WHERE texto_busqueda LIKE ?
+            WHERE {where_sql}
+            ORDER BY {order_by}
+            LIMIT ? OFFSET ?
         """
-        params = [f"%{q}%"]
+        params_query = params + [per_page, (page - 1) * per_page]
 
-        if proveedor_filtro != "todos":
-            query += " AND proveedor = ?"
-            params.append(proveedor_filtro)
-
-        query += " LIMIT 50"
-
-        c.execute(query, params)
+        c.execute(query, params_query)
         resultados = c.fetchall()
         conn.close()
 
-        if len(resultados) == 0:
+        if total_count == 0:
             sin_stock = True
 
     return render_template(
@@ -117,7 +184,14 @@ def index():
         sin_stock=sin_stock,
         proveedores=proveedores,
         fuentes=fuentes,
-        fecha_actualizacion=fecha_actualizacion
+        fecha_actualizacion=fecha_actualizacion,
+        current_q=current_q,
+        current_proveedor=current_proveedor,
+        current_sort=current_sort,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages
     )
 
 @app.route('/export_cart', methods=['POST'])

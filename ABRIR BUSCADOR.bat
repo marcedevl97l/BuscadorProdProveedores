@@ -8,27 +8,27 @@ echo.
 echo INICIO RAPIDO - Buscador de Productos
 echo.
 
-set DB_ENCONTRADA=0
+set "DB_PATH="
 
-if exist db.sqlite (
-    set DB_ENCONTRADA=1
+if exist "%CD%\db.sqlite" (
+    set "DB_PATH=%CD%\db.sqlite"
     echo Base de datos encontrada: db.sqlite
 )
 
-if exist data\db.sqlite (
-    set DB_ENCONTRADA=1
+if not defined DB_PATH if exist "%CD%\data\db.sqlite" (
+    set "DB_PATH=%CD%\data\db.sqlite"
     echo Base de datos encontrada: data\db.sqlite
 )
 
-echo DB_ENCONTRADA = !DB_ENCONTRADA!
-
-if "!DB_ENCONTRADA!"=="0" (
+if not defined DB_PATH (
     echo ERROR: No existe la base de datos
-    echo Ejecuta primero: INICIAR_PROYECTO.bat
+    echo Ejecuta primero: ACTUALIZAR BASE DE DATOS.bat o init_db.py
     echo.
     pause
     goto :eof
 )
+
+echo DB_PATH = !DB_PATH!
 
 echo Iniciando servidor...
 echo Abriendo: http://localhost:5000
@@ -39,8 +39,14 @@ echo.
 timeout /t 2 /nobreak >nul
 start http://localhost:5000
 
-echo Ejecutando: python app.py
-call python app.py
+set "PYTHON_EXE=python"
+if exist "%CD%\.venv\Scripts\python.exe" (
+    set "PYTHON_EXE=%CD%\.venv\Scripts\python.exe"
+)
+
+echo Ejecutando: %PYTHON_EXE% app.py
+set "DB_PATH=!DB_PATH!"
+call "%PYTHON_EXE%" app.py
 
 echo.
 echo El servidor se detuvo.

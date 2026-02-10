@@ -1,12 +1,15 @@
+import os
 import sqlite3
 import time
 from playwright.sync_api import sync_playwright
 from config import DB
+from normalizador import limpiar
 
 LOGIN_URL = "https://farmacom.com.pe/pedidos/login.php"
 LISTA_URL = "https://farmacom.com.pe/pedidos/lista.php"
-USUARIO = "0288"
-CLAVE = "565707"
+USUARIO = os.getenv("FARMACOM_USER")
+CLAVE = os.getenv("FARMACOM_PASS")
+HEADLESS = os.getenv("FARMACOM_HEADLESS", "false").lower() in ("1", "true", "yes")
 
 def crear_tabla():
     """Crea la tabla productos si no existe"""
@@ -19,7 +22,10 @@ def crear_tabla():
         nombre TEXT,
         proveedor TEXT,
         precio REAL,
+        precio_escala REAL,
         fuente TEXT,
+        url TEXT,
+        escala TEXT,
         texto_busqueda TEXT
     )
     """)
@@ -39,7 +45,7 @@ def limpiar_datos_farmacom():
 def guardar_producto(codigo, nombre, marca, precio, fuente):
     """Guarda un producto en la base de datos con búsqueda optimizada"""
     # Crear texto de búsqueda (todo en minúsculas para búsqueda insensible)
-    texto_busqueda = f"{codigo} {nombre} {marca}".lower()
+    texto_busqueda = limpiar(f"{codigo} {nombre} {marca}")
     
     conn = sqlite3.connect(DB)
     c = conn.cursor()
@@ -54,13 +60,16 @@ def cargar_farmacom():
     """Carga productos desde Farmacom usando Playwright"""
     crear_tabla()
     limpiar_datos_farmacom()
+
+    if not USUARIO or not CLAVE:
+        raise ValueError("Configura FARMACOM_USER y FARMACOM_PASS en .env antes de ejecutar el scraper")
     
     print("\n" + "="*60)
     print("🚀 INICIANDO CARGA DE FARMACOM")
     print("="*60 + "\n")
     
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=HEADLESS)
         page = browser.new_page()
         
         print("🌐 Abriendo Farmacom...")

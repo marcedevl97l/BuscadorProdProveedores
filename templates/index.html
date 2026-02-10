@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </head>
-</head>
 <body>
     <div class="container">
         <div class="header">
@@ -25,12 +24,17 @@
         
         <div class="search-section">
             <form method="POST">
-                <input type="text" name="q" placeholder="Buscar por producto, código o proveedor..." required autofocus>
+                <input type="hidden" name="page" value="1">
+                <input type="text" name="q" placeholder="Buscar por producto, código o proveedor..." value="{{ current_q }}" required autofocus>
                 <select name="proveedor">
                     <option value="todos">Todos los laboratorios</option>
                     {% for prov in proveedores %}
-                    <option value="{{ prov }}">{{ prov }}</option>
+                    <option value="{{ prov }}" {% if current_proveedor == prov %}selected{% endif %}>{{ prov }}</option>
                     {% endfor %}
+                </select>
+                <select name="sort">
+                    <option value="nombre_asc" {% if current_sort == 'nombre_asc' %}selected{% endif %}>Nombre: A - Z</option>
+                    <option value="nombre_desc" {% if current_sort == 'nombre_desc' %}selected{% endif %}>Nombre: Z - A</option>
                 </select>
                 <button type="submit">🔎 Buscar</button>
             </form>
@@ -109,9 +113,14 @@
                                     </div>
                                     <div class="detail-row">
                                         <span class="detail-label">Precio:</span>
-                                        <div class="precio-container {% if precio == precio_minimo and precios_producto|length > 1 %}precio-mejor{% endif %}">
-                                            <span>S/</span>
-                                            <span>{{ "%.2f"|format(precio) }}</span>
+                                        <div class="precio-line">
+                                            <div class="precio-container {% if precio == precio_minimo and precios_producto|length > 1 %}precio-mejor{% endif %}">
+                                                <span>S/</span>
+                                                <span>{{ "%.2f"|format(precio) }}</span>
+                                            </div>
+                                            {% if 'pionero' in fuente_lower and producto[6] %}
+                                            <div class="precio-escala-badge">Escala: +{{ (producto[5]|float)|int }} | Precio escala: S/ {{ "%.2f"|format(producto[6]|float) }}</div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -150,9 +159,15 @@
                                 <td><span class="codigo-badge">{{ r[1] }}</span></td>
                                 <td class="proveedor-text">{{ r[2] }}</td>
                                 <td>
-                                    <div class="precio-container">
-                                        <span>S/</span>
-                                        <span>{{ "%.2f"|format(r[3]|float) }}</span>
+                                    <div class="precio-line">
+                                        <div class="precio-container">
+                                            <span>S/</span>
+                                            <span>{{ "%.2f"|format(r[3]|float) }}</span>
+                                        </div>
+                                        {% set fuente_lower = r[4].split('|')[0].lower() %}
+                                        {% if 'pionero' in fuente_lower and r[6] %}
+                                            <div class="precio-escala-badge">Escala: +{{ (r[5]|float)|int }} | Precio escala: S/ {{ "%.2f"|format(r[6]|float) }}</div>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>
@@ -184,6 +199,18 @@
                 </div>
             </div>
         </div>
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            <form method="POST" class="pagination-form">
+                <input type="hidden" name="q" value="{{ current_q }}">
+                <input type="hidden" name="proveedor" value="{{ current_proveedor }}">
+                <input type="hidden" name="sort" value="{{ current_sort }}">
+                <button type="submit" name="page" value="{{ page - 1 }}" {% if page <= 1 %}disabled{% endif %}>Anterior</button>
+                <span>Pagina {{ page }} de {{ total_pages }} ({{ total_count }} resultados)</span>
+                <button type="submit" name="page" value="{{ page + 1 }}" {% if page >= total_pages %}disabled{% endif %}>Siguiente</button>
+            </form>
+        </div>
+        {% endif %}
         {% endif %}
 
         <!-- Panel del Carrito -->

@@ -78,6 +78,7 @@ form {
     max-width: 1000px;
     margin: 0 auto;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 select {
@@ -89,6 +90,7 @@ select {
     outline: none;
     background: white;
     min-width: 200px;
+    flex: 0 1 220px;
 }
 
 select:focus {
@@ -106,6 +108,7 @@ input[type="text"] {
     transition: all 0.3s ease;
     outline: none;
     background: white;
+    flex: 1 1 320px;
 }
 
 input[type="text"]:focus {
@@ -155,6 +158,41 @@ button[type="submit"]:active {
 
 .results-section {
     padding: 40px;
+}
+
+.pagination {
+    padding: 0 40px 40px;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #475569;
+}
+
+.pagination-form button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #1e3c72;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-form button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
 }
 
 .results-header {
@@ -331,6 +369,24 @@ button[type="submit"]:active {
     color: #166534;
     font-size: 15px;
     box-shadow: 0 2px 6px rgba(22, 101, 52, 0.1);
+}
+
+.precio-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.precio-escala-badge {
+    background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
+    border: 2px solid #facc15;
+    color: #92400e;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(146, 64, 14, 0.1);
 }
 
 .precio-mejor {

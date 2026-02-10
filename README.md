@@ -90,5 +90,21 @@ Abre tu navegador y ve a `http://localhost:5000` para acceder a la aplicación.
 - Si encuentras errores, verifica que todas las dependencias estén instaladas correctamente.
 - Para desarrollo, considera usar un entorno virtual de Python para aislar las dependencias.
 
+## Variables de Entorno (.env)
+Crea un archivo `.env` en la raíz del proyecto (puedes usar `.env.example` como plantilla):
+
+```
+FLASK_SECRET_KEY=tu_clave_secreta
+DB_PATH=RUTA\A\db.sqlite
+FARMACOM_USER=tu_usuario
+FARMACOM_PASS=tu_clave
+FARMACOM_HEADLESS=false
+DEFAULT_ADMIN_USER=SUPERVISOR
+DEFAULT_ADMIN_PASS=tu_clave_admin
+```
+
+- `DB_PATH` es opcional. Si no se configura, se usa `db.sqlite` en la raíz.
+- `FARMACOM_HEADLESS=false` mantiene el navegador visible; cambia a `true` para modo headless.
+
 ## Soporte
 Si tienes problemas durante la instalación, verifica los logs de error en la terminal o consulta la documentación de las bibliotecas utilizadas.
