@@ -46,6 +46,11 @@ function updateCartDisplay() {
         if (!groupedCart[item.fuente]) {
             groupedCart[item.fuente] = [];
         }
+        const base = item.precioBase !== undefined && item.precioBase !== null ? item.precioBase : item.precio;
+        const precioItem = getEffectivePrice(base, item.escala, item.precioEscala, item.cantidad);
+        item.precioBase = base;
+        item.precio = precioItem;
+        item.subtotal = precioItem * item.cantidad;
         groupedCart[item.fuente].push(item);
         total += item.subtotal;
         count += item.cantidad;
@@ -89,14 +94,20 @@ function updateCartDisplay() {
 function addToCartFromButton(button) {
     const nombre = button.dataset.nombre;
     const proveedor = button.dataset.proveedor;
-    const precio = parseFloat(button.dataset.precio);
     const fuente = button.dataset.fuente;
-    addToCart(nombre, proveedor, precio, fuente, button);
+    const container = button.closest('.product-card') || button.closest('tr');
+    const qtyInput = container ? container.querySelector('.qty-input') : null;
+    const cantidad = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
+
+    const base = parseNumber(button.dataset.precioBase);
+    const escala = parseNumber(button.dataset.escala);
+    const precioEscala = parseNumber(button.dataset.precioEscala);
+    const precio = getEffectivePrice(base, escala, precioEscala, cantidad);
+
+    addToCart(nombre, proveedor, precio, fuente, button, cantidad, base, escala, precioEscala);
 }
 
-function addToCart(nombre, proveedor, precio, fuente, button) {
-    const qtyInput = button.parentElement.querySelector('.qty-input');
-    const cantidad = parseInt(qtyInput.value);
+function addToCart(nombre, proveedor, precio, fuente, button, cantidad, base, escala, precioEscala) {
     const subtotal = precio * cantidad;
     
     // Verificar si ya existe el producto
@@ -104,12 +115,21 @@ function addToCart(nombre, proveedor, precio, fuente, button) {
     
     if (existingIndex >= 0) {
         cart[existingIndex].cantidad += cantidad;
+        cart[existingIndex].precio = getEffectivePrice(
+            cart[existingIndex].precioBase,
+            cart[existingIndex].escala,
+            cart[existingIndex].precioEscala,
+            cart[existingIndex].cantidad
+        );
         cart[existingIndex].subtotal = cart[existingIndex].precio * cart[existingIndex].cantidad;
     } else {
         cart.push({
             nombre: nombre,
             proveedor: proveedor,
             precio: precio,
+            precioBase: base,
+            escala: escala,
+            precioEscala: precioEscala,
             fuente: fuente,
             cantidad: cantidad,
             subtotal: subtotal
@@ -134,6 +154,7 @@ function changeCartQuantity(fuente, index, delta) {
     const fuenteItems = cart.filter(item => item.fuente === fuente);
     const item = fuenteItems[index];
     item.cantidad = Math.max(1, item.cantidad + delta);
+    item.precio = getEffectivePrice(item.precioBase, item.escala, item.precioEscala, item.cantidad);
     item.subtotal = item.precio * item.cantidad;
     updateCartDisplay();
 }
@@ -142,6 +163,7 @@ function updateCartSubtotal(fuente, index, newQty) {
     const fuenteItems = cart.filter(item => item.fuente === fuente);
     const item = fuenteItems[index];
     item.cantidad = Math.max(1, parseInt(newQty) || 1);
+    item.precio = getEffectivePrice(item.precioBase, item.escala, item.precioEscala, item.cantidad);
     item.subtotal = item.precio * item.cantidad;
     updateCartDisplay();
 }
@@ -150,10 +172,28 @@ function changeQuantity(button, delta) {
     const input = button.parentElement.querySelector('.qty-input');
     const newValue = Math.max(1, parseInt(input.value) + delta);
     input.value = newValue;
+    updateSubtotal(input);
 }
 
 function updateSubtotal(input) {
-    // Opcional: actualizar subtotal en tiempo real si se muestra
+    const container = input.closest('.product-card') || input.closest('tr');
+    if (!container) {
+        return;
+    }
+
+    const base = parseNumber(container.dataset.precioBase);
+    const escala = parseNumber(container.dataset.escala);
+    const precioEscala = parseNumber(container.dataset.precioEscala);
+    if (base === null) {
+        return;
+    }
+
+    const cantidad = Math.max(1, parseInt(input.value, 10) || 1);
+    const precio = getEffectivePrice(base, escala, precioEscala, cantidad);
+    const priceValue = container.querySelector('.price-value');
+    if (priceValue) {
+        priceValue.textContent = precio.toFixed(2);
+    }
 }
 
 function toggleCart() {
@@ -201,3 +241,15 @@ function exportToExcel() {
 document.addEventListener('DOMContentLoaded', function() {
     updateCartDisplay();
 });
+
+function parseNumber(value) {
+    const num = parseFloat(value);
+    return Number.isFinite(num) ? num : null;
+}
+
+function getEffectivePrice(base, escala, precioEscala, cantidad) {
+    if (escala !== null && precioEscala !== null && cantidad >= escala) {
+        return precioEscala;
+    }
+    return base;
+}

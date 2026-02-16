@@ -100,7 +100,7 @@
                             {% endfor %}
                             {% set precio_minimo = precios_producto|min %}
                             
-                            <div class="product-card">
+                            <div class="product-card" data-precio-base="{{ precio }}" data-escala="{{ producto[5] or '' }}" data-precio-escala="{{ producto[6] or '' }}">
                                 <div class="product-name">{{ producto[0] }}</div>
                                 <div class="product-details">
                                     <div class="detail-row">
@@ -116,7 +116,7 @@
                                         <div class="precio-line">
                                             <div class="precio-container {% if precio == precio_minimo and precios_producto|length > 1 %}precio-mejor{% endif %}">
                                                 <span>S/</span>
-                                                <span>{{ "%.2f"|format(precio) }}</span>
+                                                <span class="price-value">{{ "%.2f"|format(precio) }}</span>
                                             </div>
                                             {% if 'pionero' in fuente_lower and producto[6] %}
                                             <div class="precio-escala-badge">Escala: +{{ (producto[5]|float)|int }} | Precio escala: S/ {{ "%.2f"|format(producto[6]|float) }}</div>
@@ -130,7 +130,7 @@
                                         <input type="number" class="qty-input" value="1" min="1" onchange="updateSubtotal(this)">
                                         <button type="button" class="qty-btn" onclick="changeQuantity(this, 1)">+</button>
                                     </div>
-                                    <button type="button" class="add-to-cart-btn" data-nombre="{{ producto[0] }}" data-proveedor="{{ producto[2] }}" data-precio="{{ precio }}" data-fuente="{{ fuente }}" onclick="addToCartFromButton(this)">🛒 Agregar al Carrito</button>
+                                    <button type="button" class="add-to-cart-btn" data-nombre="{{ producto[0] }}" data-proveedor="{{ producto[2] }}" data-precio-base="{{ precio }}" data-escala="{{ producto[5] or '' }}" data-precio-escala="{{ producto[6] or '' }}" data-fuente="{{ fuente }}" onclick="addToCartFromButton(this)">🛒 Agregar al Carrito</button>
                                 </div>
                             </div>
                         {% endfor %}
@@ -154,7 +154,7 @@
                         </thead>
                         <tbody>
                             {% for r in resultados %}
-                            <tr>
+                            <tr data-precio-base="{{ r[3]|float }}" data-escala="{{ r[5] or '' }}" data-precio-escala="{{ r[6] or '' }}">
                                 <td><strong>{{ r[0] }}</strong></td>
                                 <td><span class="codigo-badge">{{ r[1] }}</span></td>
                                 <td class="proveedor-text">{{ r[2] }}</td>
@@ -162,7 +162,7 @@
                                     <div class="precio-line">
                                         <div class="precio-container">
                                             <span>S/</span>
-                                            <span>{{ "%.2f"|format(r[3]|float) }}</span>
+                                            <span class="price-value">{{ "%.2f"|format(r[3]|float) }}</span>
                                         </div>
                                         {% set fuente_lower = r[4].split('|')[0].lower() %}
                                         {% if 'pionero' in fuente_lower and r[6] %}
@@ -190,7 +190,7 @@
                                         <input type="number" class="qty-input" value="1" min="1" onchange="updateSubtotal(this)">
                                         <button type="button" class="qty-btn" onclick="changeQuantity(this, 1)">+</button>
                                     </div>
-                                    <button type="button" class="add-to-cart-btn" data-nombre="{{ r[0] }}" data-proveedor="{{ r[2] }}" data-precio="{{ r[3]|float }}" data-fuente="{{ r[4].split('|')[0] }}" onclick="addToCartFromButton(this)">🛒 Agregar</button>
+                                    <button type="button" class="add-to-cart-btn" data-nombre="{{ r[0] }}" data-proveedor="{{ r[2] }}" data-precio-base="{{ r[3]|float }}" data-escala="{{ r[5] or '' }}" data-precio-escala="{{ r[6] or '' }}" data-fuente="{{ r[4].split('|')[0] }}" onclick="addToCartFromButton(this)">🛒 Agregar</button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -229,6 +229,7 @@
                 <button class="export-btn" onclick="exportToExcel()">📊 Exportar a Excel</button>
             </div>
         </div>
+
     </div>
 </body>
 </html>
