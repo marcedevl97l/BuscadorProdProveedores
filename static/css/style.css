@@ -358,6 +358,16 @@ button[type="submit"]:active {
     font-size: 13px;
 }
 
+.vencimiento-text {
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.vencimiento-proximo {
+    color: #dc2626;
+}
+
 .precio-container {
     display: inline-flex;
     align-items: center;

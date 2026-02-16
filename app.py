@@ -13,6 +13,7 @@ from normalizador import limpiar
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_key_change_this_in_production')
+VENCIMIENTO_UMBRAL_DIAS = 60
 
 
 # Configurar Flask-Login
@@ -34,7 +35,8 @@ def ensure_schema():
         fuente TEXT,
         url TEXT,
         escala TEXT,
-        texto_busqueda TEXT
+        texto_busqueda TEXT,
+        fecha_venc TEXT
     )
     """)
     c.execute("PRAGMA table_info(productos)")
@@ -45,10 +47,28 @@ def ensure_schema():
         c.execute("ALTER TABLE productos ADD COLUMN escala TEXT")
     if "precio_escala" not in columns:
         c.execute("ALTER TABLE productos ADD COLUMN precio_escala REAL")
+    if "fecha_venc" not in columns:
+        c.execute("ALTER TABLE productos ADD COLUMN fecha_venc TEXT")
     conn.commit()
     conn.close()
 
+def normalizar_texto_busqueda():
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("SELECT id, nombre, codigo, proveedor, texto_busqueda FROM productos")
+    rows = c.fetchall()
+    updates = []
+    for row_id, nombre, codigo, proveedor, texto_busqueda in rows:
+        nuevo_texto = limpiar(f"{nombre} {codigo} {proveedor}")
+        if texto_busqueda != nuevo_texto:
+            updates.append((nuevo_texto, row_id))
+    if updates:
+        c.executemany("UPDATE productos SET texto_busqueda = ? WHERE id = ?", updates)
+        conn.commit()
+    conn.close()
+
 ensure_schema()
+normalizar_texto_busqueda()
 
 class User(UserMixin):
     def __init__(self, id, username, password_hash):
@@ -163,13 +183,29 @@ def index():
             page = total_pages
 
         query = f"""
-            SELECT nombre, codigo, proveedor, precio, fuente, escala, precio_escala
+            SELECT
+                nombre,
+                codigo,
+                proveedor,
+                precio,
+                fuente,
+                escala,
+                precio_escala,
+                fecha_venc,
+                CASE
+                    WHEN fecha_venc IS NOT NULL
+                        AND fecha_venc != ''
+                        AND julianday(fecha_venc) - julianday('now') <= ?
+                        AND julianday(fecha_venc) - julianday('now') >= 0
+                    THEN 1
+                    ELSE 0
+                END AS vencimiento_proximo
             FROM productos
             WHERE {where_sql}
             ORDER BY {order_by}
             LIMIT ? OFFSET ?
         """
-        params_query = params + [per_page, (page - 1) * per_page]
+        params_query = [VENCIMIENTO_UMBRAL_DIAS] + params + [per_page, (page - 1) * per_page]
 
         c.execute(query, params_query)
         resultados = c.fetchall()

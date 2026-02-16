@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS productos (
     fuente TEXT,
     url TEXT,
     escala TEXT,
-    texto_busqueda TEXT
+    texto_busqueda TEXT,
+    fecha_venc TEXT
 )
 """)
 

@@ -111,6 +111,12 @@
                                         <span class="detail-label">Proveedor:</span>
                                         <span class="proveedor-text">{{ producto[2] }}</span>
                                     </div>
+                                    {% if 'prosalud' in fuente_lower and producto[7] %}
+                                    <div class="detail-row">
+                                        <span class="detail-label">F. Venc.:</span>
+                                        <span class="vencimiento-text {% if producto[8] %}vencimiento-proximo{% endif %}">{{ producto[7] }}</span>
+                                    </div>
+                                    {% endif %}
                                     <div class="detail-row">
                                         <span class="detail-label">Precio:</span>
                                         <div class="precio-line">
@@ -147,6 +153,7 @@
                                 <th>Producto</th>
                                 <th>Código</th>
                                 <th>Proveedor</th>
+                                <th>F. Venc.</th>
                                 <th>Precio</th>
                                 <th>Fuente</th>
                                 <th>Acciones</th>
@@ -159,19 +166,23 @@
                                 <td><span class="codigo-badge">{{ r[1] }}</span></td>
                                 <td class="proveedor-text">{{ r[2] }}</td>
                                 <td>
+                                    {% set fuente_lower = r[4].split('|')[0].lower() %}
+                                    {% if 'prosalud' in fuente_lower and r[7] %}
+                                        <span class="vencimiento-text {% if r[8] %}vencimiento-proximo{% endif %}">{{ r[7] }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <div class="precio-line">
                                         <div class="precio-container">
                                             <span>S/</span>
                                             <span class="price-value">{{ "%.2f"|format(r[3]|float) }}</span>
                                         </div>
-                                        {% set fuente_lower = r[4].split('|')[0].lower() %}
                                         {% if 'pionero' in fuente_lower and r[6] %}
                                             <div class="precio-escala-badge">Escala: +{{ (r[5]|float)|int }} | Precio escala: S/ {{ "%.2f"|format(r[6]|float) }}</div>
                                         {% endif %}
                                     </div>
                                 </td>
                                 <td>
-                                    {% set fuente_lower = r[4].split('|')[0].lower() %}
                                     {% if 'pionero' in fuente_lower %}
                                         <span class="fuente-badge fuente-pionero">📦 {{ r[4].split('|')[0] }}</span>
                                     {% elif 'prosalud' in fuente_lower %}
