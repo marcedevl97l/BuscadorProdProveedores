@@ -13,7 +13,7 @@ from normalizador import limpiar
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'super_secret_key_change_this_in_production')
-VENCIMIENTO_UMBRAL_DIAS = 60
+VENCIMIENTO_UMBRAL_DIAS = 240
 
 
 # Configurar Flask-Login

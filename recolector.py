@@ -121,7 +121,13 @@ def leer_excel(ruta):
 
                 escala = parse_str(fila.iloc[5]) if is_pionero else ""
                 precio_escala = parse_float(fila.iloc[6]) if is_pionero else None
-                fecha_venc = parse_date(fila.iloc[5]) if is_prosalud else ""
+                
+                if is_prosalud:
+                    fecha_venc = parse_date(fila.iloc[5])
+                elif is_pionero:
+                    fecha_venc = parse_date(fila.iloc[4])
+                else:
+                    fecha_venc = ""
 
                 producto = {
                     "codigo": parse_str(fila.iloc[0]),

@@ -26,7 +26,8 @@ def crear_tabla():
         fuente TEXT,
         url TEXT,
         escala TEXT,
-        texto_busqueda TEXT
+        texto_busqueda TEXT,
+        fecha_venc TEXT
     )
     """)
     conn.commit()
@@ -42,7 +43,7 @@ def limpiar_datos_farmacom():
     conn.close()
     print(f"✓ Eliminados {eliminados} productos antiguos de Farmacom")
 
-def guardar_producto(codigo, nombre, marca, precio, fuente):
+def guardar_producto(codigo, nombre, marca, precio, fuente, fecha_venc=""):
     """Guarda un producto en la base de datos con búsqueda optimizada"""
     # Crear texto de búsqueda (todo en minúsculas para búsqueda insensible)
     texto_busqueda = limpiar(f"{codigo} {nombre} {marca}")
@@ -50,9 +51,9 @@ def guardar_producto(codigo, nombre, marca, precio, fuente):
     conn = sqlite3.connect(DB)
     c = conn.cursor()
     c.execute("""
-    INSERT INTO productos (codigo, nombre, proveedor, precio, fuente, texto_busqueda)
-    VALUES (?, ?, ?, ?, ?, ?)
-    """, (codigo, nombre, marca, precio, fuente, texto_busqueda))
+    INSERT INTO productos (codigo, nombre, proveedor, precio, fuente, texto_busqueda, fecha_venc)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (codigo, nombre, marca, precio, fuente, texto_busqueda, fecha_venc))
     conn.commit()
     conn.close()
 
@@ -147,22 +148,48 @@ def cargar_farmacom():
                 try:
                     columnas = fila.query_selector_all("td")
                     
-                    if len(columnas) < 7:
+                    if len(columnas) < 4:
                         continue
                     
-                    # Extraer datos según la estructura
+                    # Extraer datos según la estructura observada
                     codigo = columnas[0].inner_text().strip()
                     nombre = columnas[1].inner_text().strip()
-                    marca = columnas[2].inner_text().strip()
-                    precio_txt = columnas[6].inner_text().strip()  # Columna PRECIO
+                    marca = columnas[2].inner_text().strip() if len(columnas) > 2 else ""
                     
-                    # Limpiar precio
+                    # El precio está en la columna 6
+                    precio_txt = "0"
+                    if len(columnas) > 6:
+                        precio_txt = columnas[6].inner_text().strip()
+
                     precio_txt = precio_txt.replace("S/", "").replace(" ", "").replace(",", "")
                     try:
                         precio = float(precio_txt)
                     except:
                         precio = 0.0
+
+                    vencimiento = ""
+                    # 🔍 Extraer vencimiento del nombre: formato (MM/YY)
+                    import re
+                    match = re.search(r'\((\d{1,2})\/(\d{2,4})\)', nombre)
+                    if match:
+                        mes = match.group(1).zfill(2)
+                        anio = match.group(2)
+                        if len(anio) == 2:
+                            anio = "20" + anio
+                        vencimiento = f"{anio}-{mes}-01"
                     
+                    # Si no está en el nombre, intentar en col 5 (aunque parece ser Stock)
+                    if not vencimiento and len(columnas) >= 6:
+                        vencimiento_raw = columnas[5].inner_text().strip()
+                        if "/" in vencimiento_raw or "-" in vencimiento_raw:
+                            try:
+                                import pandas as pd
+                                dt = pd.to_datetime(vencimiento_raw, errors='coerce')
+                                if not pd.isna(dt):
+                                    vencimiento = dt.date().isoformat()
+                            except:
+                                pass
+
                     # Guardar en la base de datos
                     if codigo and nombre:  # Solo guardar si tiene código y nombre
                         guardar_producto(
@@ -170,7 +197,8 @@ def cargar_farmacom():
                             nombre,
                             marca,
                             precio,
-                            "Farmacom Web"
+                            "Farmacom Web",
+                            vencimiento
                         )
                         contador_pagina += 1
                         contador_total += 1
