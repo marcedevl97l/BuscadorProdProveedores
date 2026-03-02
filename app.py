@@ -1,9 +1,12 @@
-import math
 import os
-from flask import Flask, render_template, request, session, redirect, url_for, send_file
+import json
+import sqlite3
+import math
+import subprocess
+from flask import Flask, render_template, request, session, redirect, url_for, send_file, flash, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+from werkzeug.utils import secure_filename
 from config import DB
 from datetime import datetime
 from openpyxl import Workbook
@@ -252,8 +255,9 @@ def export_cart():
     # Headers
     ws_main['A3'] = 'Fuente'
     ws_main['B3'] = 'Producto'
-    ws_main['C3'] = 'Cantidad'
-    for cell in ['A3', 'B3', 'C3']:
+    ws_main['C3'] = 'Laboratorio'
+    ws_main['D3'] = 'Cantidad'
+    for cell in ['A3', 'B3', 'C3', 'D3']:
         ws_main[cell].font = Font(bold=True)
         ws_main[cell].alignment = Alignment(horizontal='center')
     
@@ -278,7 +282,8 @@ def export_cart():
         
         for item in items:
             ws_main[f'B{row}'] = item['nombre']
-            ws_main[f'C{row}'] = item['cantidad']
+            ws_main[f'C{row}'] = item['proveedor']
+            ws_main[f'D{row}'] = item['cantidad']
             row += 1
         
         row += 1  # Espacio entre grupos
@@ -286,14 +291,14 @@ def export_cart():
     # Total general
     ws_main[f'A{row}'] = 'TOTAL GENERAL'
     ws_main[f'A{row}'].font = Font(bold=True)
-    ws_main[f'C{row}'] = f'S/ {total_general:.2f}'
+    ws_main[f'D{row}'] = f'S/ {total_general:.2f}'
     row += 1
 
-    # Hoja de proveedores
-    ws_prov = wb.create_sheet("Proveedores")
+    # Hoja de proveedores (Detalle por Laboratorio)
+    ws_prov = wb.create_sheet("Detalle por Laboratorio")
     ws_prov['A1'] = 'Producto'
-    ws_prov['B1'] = 'Cantidad'
-    ws_prov['C1'] = 'Proveedor'
+    ws_prov['B1'] = 'Laboratorio'
+    ws_prov['C1'] = 'Cantidad'
     for cell in ['A1', 'B1', 'C1']:
         ws_prov[cell].font = Font(bold=True)
         ws_prov[cell].alignment = Alignment(horizontal='center')
@@ -301,15 +306,16 @@ def export_cart():
     row = 2
     for item in cart_data:
         ws_prov[f'A{row}'] = item['nombre']
-        ws_prov[f'B{row}'] = item['cantidad']
-        ws_prov[f'C{row}'] = item['proveedor']
+        ws_prov[f'B{row}'] = item['proveedor']
+        ws_prov[f'C{row}'] = item['cantidad']
         row += 1
 
     # Ajustar ancho de columnas
     for ws in [ws_main, ws_prov]:
         ws.column_dimensions['A'].width = 30
         ws.column_dimensions['B'].width = 40
-        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['C'].width = 30
+        ws.column_dimensions['D'].width = 15
 
     # Guardar en memoria
     bio = BytesIO()
@@ -317,6 +323,105 @@ def export_cart():
     bio.seek(0)
 
     return send_file(bio, as_attachment=True, download_name='lista_compras.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/admin')
+@login_required
+def admin():
+    # Solo el admin por defecto puede entrar (o implementar roles)
+    if current_user.username != os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR"):
+        flash('No tienes permisos para acceder a esta sección.', 'error')
+        return redirect(url_for('index'))
+    
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("SELECT clave, valor FROM configuraciones")
+    config_data = {row[0]: row[1] for row in c.fetchall()}
+    conn.close()
+    
+    # Listar archivos Excel en /data
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    excel_files = [f for f in os.listdir(data_dir) if f.endswith('.xlsx')]
+    
+    return render_template('admin.html', config_data=config_data, excel_files=excel_files)
+
+@app.route('/admin/save_config', methods=['POST'])
+@login_required
+def save_config():
+    if current_user.username != os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR"):
+        return redirect(url_for('index'))
+    
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    for clave, valor in request.form.items():
+        c.execute("INSERT OR REPLACE INTO configuraciones (clave, valor) VALUES (?, ?)", (clave, valor))
+    conn.commit()
+    conn.close()
+    flash('Configuración guardada correctamente.', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/upload_excel', methods=['POST'])
+@login_required
+def upload_excel():
+    if current_user.username != os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR"):
+        return redirect(url_for('index'))
+    
+    if 'file' not in request.files:
+        flash('No se seleccionó ningún archivo.', 'error')
+        return redirect(url_for('admin'))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('Archivo no válido.', 'error')
+        return redirect(url_for('admin'))
+    
+    if file and file.filename.endswith('.xlsx'):
+        filename = secure_filename(file.filename)
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+        
+        filepath = os.path.join(data_dir, filename)
+        file.save(filepath)
+        
+        # Intentar procesar el archivo automáticamente
+        try:
+            from recolector import leer_excel
+            leer_excel(filepath)
+            flash(f'Archivo {filename} subido y procesado correctamente.', 'success')
+        except Exception as e:
+            flash(f'Archivo subido pero error al procesar: {e}', 'error')
+            
+    return redirect(url_for('admin'))
+
+@app.route('/admin/run_process', methods=['POST'])
+@login_required
+def run_process():
+    if current_user.username != os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR"):
+        return jsonify({'status': 'error', 'message': 'No autorizado'})
+    
+    data = request.get_json()
+    p_type = data.get('type')
+    filename = data.get('filename')
+    
+    try:
+        if p_type == 'farmacom':
+            # Ejecutar scraper_farmacom.py como subproceso
+            subprocess.Popen(['python', 'scraper_farmacom.py'])
+            return jsonify({'status': 'success', 'message': 'Scraper de Farmacom iniciado en segundo plano.'})
+        
+        elif p_type == 'excel' and filename:
+            from recolector import leer_excel
+            data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+            filepath = os.path.join(data_dir, filename)
+            leer_excel(filepath)
+            return jsonify({'status': 'success', 'message': f'Archivo {filename} recargado correctamente.'})
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+    return jsonify({'status': 'error', 'message': 'Acción no reconocida'})
 
 if __name__ == "__main__":
     app.run(debug=True)

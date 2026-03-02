@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Buscador de Productos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">⚙️</span>
+                    <span class="logo-text">AdminPanel</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="/admin" class="nav-item active">
+                    <span class="nav-icon">⚙️</span>
+                    Configuración
+                </a>
+                <a href="/logout" class="nav-item" style="margin-top: auto; color: #ef4444;">
+                    <span class="nav-icon">🚪</span>
+                    Cerrar Sesión
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div>
+                    <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 4px;">Configuración del Sistema</h1>
+                    <p style="color: var(--text-muted); font-size: 14px;">Gestiona las credenciales de scrapers y
+                        archivos base.</p>
+                </div>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert-{{ category }}"
+                style="padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 600;">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="comparison-view active">
+                <!-- Columna Scrapers -->
+                <div class="source-column">
+                    <div class="source-header farmacom">URLS Y CREDENCIALES</div>
+                    <div style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+                        <form action="/admin/save_config" method="POST"
+                            style="display: flex; flex-direction: column; gap: 20px;">
+                            <div class="input-group">
+                                <label>Usuario Farmacom</label>
+                                <input type="text" name="farmacom_user"
+                                    value="{{ config_data.get('farmacom_user', '') }}" placeholder="Ingrese usuario...">
+                            </div>
+                            <div class="input-group">
+                                <label>Contraseña Farmacom</label>
+                                <input type="password" name="farmacom_pass"
+                                    value="{{ config_data.get('farmacom_pass', '') }}"
+                                    placeholder="Ingrese contraseña...">
+                            </div>
+                            <div class="input-group">
+                                <label>Modo Navegador</label>
+                                <select name="farmacom_headless" class="search-bar-modern select" style="width: 100%;">
+                                    <option value="true" {% if config_data.get('farmacom_headless')=='true' %}selected{%
+                                        endif %}>Oculto (Producción)</option>
+                                    <option value="false" {% if config_data.get('farmacom_headless')=='false'
+                                        %}selected{% endif %}>Visible (Debug)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                                💾 Guardar Configuración
+                            </button>
+                            <button type="button" class="btn-primary" onclick="runScraper('farmacom')"
+                                style="width: 100%; justify-content: center; background: var(--success);">
+                                🚀 Ejecutar Scraper Ahora
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Columna Excels -->
+                <div class="source-column">
+                    <div class="source-header pionero">ARCHIVOS EXCEL (.XLSX)</div>
+                    <div style="padding: 24px;">
+                        <form action="/admin/upload_excel" method="POST" enctype="multipart/form-data"
+                            style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+                            <label style="font-size: 13px; font-weight: 700; color: var(--text-main);">Subir Nuevo
+                                Catálogo</label>
+                            <input type="file" name="file" accept=".xlsx" required
+                                style="font-size: 13px; padding: 8px; background: var(--bg-main); border-radius: 8px; border: 1px dashed var(--border);">
+                            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">📤
+                                Subir y Procesar</button>
+                        </form>
+
+                        <h4
+                            style="font-size: 12px; font-weight: 800; margin-bottom: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                            Archivos Disponibles:</h4>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            {% for file in excel_files %}
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--bg-main); border-radius: var(--radius); border: 1px solid var(--border);">
+                                <span
+                                    style="font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace;">{{
+                                    file }}</span>
+                                <button class="pagination-btn" onclick="runScraper('excel', '{{ file }}')"
+                                    title="Recargar" style="width: 32px; height: 32px;">🔄</button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Logs -->
+            <div class="source-column" style="margin-top: 24px;">
+                <div class="source-header otro">ESTADO Y LOGS DEL SISTEMA</div>
+                <div id="log-output"
+                    style="background: #0f172a; color: #10b981; padding: 24px; border-radius: 0 0 16px 16px; height: 350px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; border: 1px solid #1e293b; border-top: none;">
+                    <span style="color: #64748b;">>> Sistema iniciado. Esperando acciones...</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function runScraper(type, filename = '') {
+            const output = document.getElementById('log-output');
+            output.innerHTML += `\n<span style="color: #3b82f6;">[${new Date().toLocaleTimeString()}]</span> Iniciando proceso ${type}${filename ? ' para ' + filename : ''}...`;
+            output.scrollTop = output.scrollHeight;
+
+            fetch('/admin/run_process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, filename })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    output.innerHTML += `\n<span style="color: #10b981;">[${new Date().toLocaleTimeString()}]</span> ${data.message}`;
+                    output.scrollTop = output.scrollHeight;
+                })
+                .catch(err => {
+                    output.innerHTML += `\n<span style="color: #ef4444;">[${new Date().toLocaleTimeString()}]</span> Error: ${err}`;
+                    output.scrollTop = output.scrollHeight;
+                });
+        }
+    </script>
+</body>
+
+</html>

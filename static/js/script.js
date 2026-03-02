@@ -1,10 +1,10 @@
 // Detectar cuando se cierra la pestaña
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     navigator.sendBeacon('/ping');
 });
 
 // Mantener viva la conexión cada 20 segundos
-setInterval(function() {
+setInterval(function () {
     fetch('/ping').catch(err => console.log('Servidor cerrado'));
 }, 20000);
 
@@ -35,11 +35,11 @@ function updateCartDisplay() {
     const cartItems = document.getElementById('cart-items');
     const cartTotal = document.getElementById('cart-total');
     const cartCount = document.getElementById('cart-count');
-    
+
     cartItems.innerHTML = '';
     let total = 0;
     let count = 0;
-    
+
     // Agrupar por fuente
     const groupedCart = {};
     cart.forEach(item => {
@@ -55,37 +55,35 @@ function updateCartDisplay() {
         total += item.subtotal;
         count += item.cantidad;
     });
-    
+
     for (const [fuente, items] of Object.entries(groupedCart)) {
-        const fuenteDiv = document.createElement('div');
-        fuenteDiv.className = 'cart-provider';
-        fuenteDiv.innerHTML = `<h4>${fuente}</h4>`;
-        
+        const fuenteHeader = document.createElement('div');
+        fuenteHeader.style.cssText = 'font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 15px 0 10px 5px;';
+        fuenteHeader.innerHTML = fuente;
+        cartItems.appendChild(fuenteHeader);
+
         items.forEach((item, index) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'cart-item';
             itemDiv.innerHTML = `
-                <div class="cart-item-info">
-                    <span class="cart-item-name">${item.nombre}</span>
-                    <div class="cart-item-details">
-                        <span>Proveedor: ${item.proveedor}</span>
-                        <span>Cantidad: 
-                            <button class="qty-btn-small" onclick="changeCartQuantity('${fuente}', ${index}, -1)">-</button>
-                            <input type="number" class="qty-input-small" value="${item.cantidad}" min="1" onchange="updateCartSubtotal('${fuente}', ${index}, this.value)">
-                            <button class="qty-btn-small" onclick="changeCartQuantity('${fuente}', ${index}, 1)">+</button>
-                        </span>
-                        <span>Precio: S/ ${item.precio.toFixed(2)}</span>
-                        <span>Subtotal: S/ ${item.subtotal.toFixed(2)}</span>
+                <span class="cart-item-name">${item.nombre}</span>
+                <div class="cart-item-details">
+                    <span style="font-weight: 500; font-size: 11px; margin-bottom: 8px; display: block;">${item.proveedor}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="quantity-controls" style="padding: 2px;">
+                            <button class="qty-btn" style="width: 24px; height: 24px; font-size: 12px; border-radius: 6px;" onclick="changeCartQuantity('${fuente}', ${index}, -1)">-</button>
+                            <span class="qty-input" style="width: 30px; line-height: 24px;">${item.cantidad}</span>
+                            <button class="qty-btn" style="width: 24px; height: 24px; font-size: 12px; border-radius: 6px;" onclick="changeCartQuantity('${fuente}', ${index}, 1)">+</button>
+                        </div>
+                        <span class="cart-item-price" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px;">S/ ${item.subtotal.toFixed(2)}</span>
                     </div>
                 </div>
-                <button class="remove-btn" onclick="removeFromCart('${fuente}', ${index})">🗑️</button>
+                <button class="remove-btn" onclick="removeFromCart('${fuente}', ${index})" style="position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer; font-size: 14px;">🗑️</button>
             `;
-            fuenteDiv.appendChild(itemDiv);
+            cartItems.appendChild(itemDiv);
         });
-        
-        cartItems.appendChild(fuenteDiv);
     }
-    
+
     cartTotal.textContent = total.toFixed(2);
     cartCount.textContent = count;
     sessionStorage.setItem('cart', JSON.stringify(cart));
@@ -109,10 +107,10 @@ function addToCartFromButton(button) {
 
 function addToCart(nombre, proveedor, precio, fuente, button, cantidad, base, escala, precioEscala) {
     const subtotal = precio * cantidad;
-    
+
     // Verificar si ya existe el producto
     const existingIndex = cart.findIndex(item => item.nombre === nombre && item.proveedor === proveedor && item.fuente === fuente);
-    
+
     if (existingIndex >= 0) {
         cart[existingIndex].cantidad += cantidad;
         cart[existingIndex].precio = getEffectivePrice(
@@ -135,7 +133,7 @@ function addToCart(nombre, proveedor, precio, fuente, button, cantidad, base, es
             subtotal: subtotal
         });
     }
-    
+
     updateCartDisplay();
     // Animación de feedback
     button.textContent = '✅ Agregado';
@@ -206,7 +204,7 @@ function exportToExcel() {
         alert('El carrito está vacío');
         return;
     }
-    
+
     fetch('/export_cart', {
         method: 'POST',
         headers: {
@@ -214,31 +212,31 @@ function exportToExcel() {
         },
         body: JSON.stringify(cart)
     })
-    .then(response => {
-        if (response.ok) {
-            return response.blob();
-        } else {
-            throw new Error('Error al exportar');
-        }
-    })
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'lista_compras.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error al exportar el documento');
-    });
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            } else {
+                throw new Error('Error al exportar');
+            }
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lista_compras.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al exportar el documento');
+        });
 }
 
 // Inicializar carrito al cargar la página
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     updateCartDisplay();
 });
 

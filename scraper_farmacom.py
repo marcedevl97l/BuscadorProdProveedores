@@ -5,33 +5,35 @@ from playwright.sync_api import sync_playwright
 from config import DB
 from normalizador import limpiar
 
-LOGIN_URL = "https://farmacom.com.pe/pedidos/login.php"
-LISTA_URL = "https://farmacom.com.pe/pedidos/lista.php"
-USUARIO = os.getenv("FARMACOM_USER")
-CLAVE = os.getenv("FARMACOM_PASS")
-HEADLESS = os.getenv("FARMACOM_HEADLESS", "false").lower() in ("1", "true", "yes")
+# LOGIN_URL = "https://farmacom.com.pe/pedidos/login.php"
+# LISTA_URL = "https://farmacom.com.pe/pedidos/lista.php"
+# USUARIO = os.getenv("FARMACOM_USER")
+# CLAVE = os.getenv("FARMACOM_PASS")
+# HEADLESS = os.getenv("FARMACOM_HEADLESS", "false").lower() in ("1", "true", "yes")
 
-def crear_tabla():
-    """Crea la tabla productos si no existe"""
+def obtener_config():
+    """Obtiene la configuración desde la base de datos"""
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS productos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo TEXT,
-        nombre TEXT,
-        proveedor TEXT,
-        precio REAL,
-        precio_escala REAL,
-        fuente TEXT,
-        url TEXT,
-        escala TEXT,
-        texto_busqueda TEXT,
-        fecha_venc TEXT
-    )
-    """)
-    conn.commit()
+    c.execute("SELECT clave, valor FROM configuraciones")
+    config = {row[0]: row[1] for row in c.fetchall()}
     conn.close()
+    return config
+
+def cargar_farmacom():
+    """Carga productos desde Farmacom usando Playwright"""
+    crear_tabla()
+    limpiar_datos_farmacom()
+    
+    config = obtener_config()
+    usuario = config.get('farmacom_user')
+    clave = config.get('farmacom_pass')
+    login_url = config.get('farmacom_url_login', "https://farmacom.com.pe/pedidos/login.php")
+    lista_url = config.get('farmacom_url_lista', "https://farmacom.com.pe/pedidos/lista.php")
+    headless = config.get('farmacom_headless', 'false').lower() in ("1", "true", "yes")
+
+    if not usuario or not clave:
+        raise ValueError("Configura el usuario y clave de Farmacom en el Panel de Administración")
 
 def limpiar_datos_farmacom():
     """Elimina los datos antiguos de Farmacom antes de actualizar"""
@@ -70,11 +72,11 @@ def cargar_farmacom():
     print("="*60 + "\n")
     
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=HEADLESS)
+        browser = p.chromium.launch(headless=headless)
         page = browser.new_page()
         
         print("🌐 Abriendo Farmacom...")
-        page.goto(LOGIN_URL, timeout=60000)
+        page.goto(login_url, timeout=60000)
         page.wait_for_load_state("networkidle")
         
         # 🔍 Detectar si ya está logueado
@@ -84,8 +86,8 @@ def cargar_farmacom():
             print("🔐 Haciendo login...")
             try:
                 page.wait_for_selector("input[type='text']", timeout=10000)
-                page.fill("input[type='text']", USUARIO)
-                page.fill("input[type='password']", CLAVE)
+                page.fill("input[type='text']", usuario)
+                page.fill("input[type='password']", clave)
                 
                 # Buscar el botón de submit (puede ser button o input)
                 submit_button = page.query_selector("button[type='submit']")
@@ -115,7 +117,7 @@ def cargar_farmacom():
             print(f"\n📄 Procesando página {pagina}...")
             
             # Ir a la página específica
-            page.goto(f"{LISTA_URL}?buspag={pagina}", timeout=60000)
+            page.goto(f"{lista_url}?buspag={pagina}", timeout=60000)
             
             # Esperar a que cargue la tabla
             try:

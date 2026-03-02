@@ -30,6 +30,28 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 
+c.execute("""
+CREATE TABLE IF NOT EXISTS configuraciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    clave TEXT UNIQUE,
+    valor TEXT
+)
+""")
+
+# Insertar configuraciones por defecto
+configuraciones_iniciales = [
+    ('farmacom_user', os.getenv("FARMACOM_USER", "")),
+    ('farmacom_pass', os.getenv("FARMACOM_PASS", "")),
+    ('farmacom_url_login', "https://farmacom.com.pe/pedidos/login.php"),
+    ('farmacom_url_lista', "https://farmacom.com.pe/pedidos/lista.php"),
+    ('farmacom_headless', os.getenv("FARMACOM_HEADLESS", "false")),
+    ('pionero_excel_pattern', "PIONERO"),
+    ('prosalud_excel_pattern', "PROSALUD")
+]
+
+for clave, valor in configuraciones_iniciales:
+    c.execute("INSERT OR IGNORE INTO configuraciones (clave, valor) VALUES (?, ?)", (clave, valor))
+
 # Insertar usuario admin por defecto si no existe
 default_username = os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR")
 default_password = os.getenv("DEFAULT_ADMIN_PASS", "171508")
