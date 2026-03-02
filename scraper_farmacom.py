@@ -20,21 +20,6 @@ def obtener_config():
     conn.close()
     return config
 
-def cargar_farmacom():
-    """Carga productos desde Farmacom usando Playwright"""
-    crear_tabla()
-    limpiar_datos_farmacom()
-    
-    config = obtener_config()
-    usuario = config.get('farmacom_user')
-    clave = config.get('farmacom_pass')
-    login_url = config.get('farmacom_url_login', "https://farmacom.com.pe/pedidos/login.php")
-    lista_url = config.get('farmacom_url_lista', "https://farmacom.com.pe/pedidos/lista.php")
-    headless = config.get('farmacom_headless', 'false').lower() in ("1", "true", "yes")
-
-    if not usuario or not clave:
-        raise ValueError("Configura el usuario y clave de Farmacom en el Panel de Administración")
-
 def limpiar_datos_farmacom():
     """Elimina los datos antiguos de Farmacom antes de actualizar"""
     conn = sqlite3.connect(DB)
@@ -61,11 +46,17 @@ def guardar_producto(codigo, nombre, marca, precio, fuente, fecha_venc=""):
 
 def cargar_farmacom():
     """Carga productos desde Farmacom usando Playwright"""
-    crear_tabla()
     limpiar_datos_farmacom()
+    
+    config = obtener_config()
+    usuario = config.get('farmacom_user')
+    clave = config.get('farmacom_pass')
+    login_url = config.get('farmacom_url_login', "https://farmacom.com.pe/pedidos/login.php")
+    lista_url = config.get('farmacom_url_lista', "https://farmacom.com.pe/pedidos/lista.php")
+    headless = config.get('farmacom_headless', 'false').lower() in ("1", "true", "yes")
 
-    if not USUARIO or not CLAVE:
-        raise ValueError("Configura FARMACOM_USER y FARMACOM_PASS en .env antes de ejecutar el scraper")
+    if not usuario or not clave:
+        raise ValueError("Configura el usuario y clave de Farmacom en el Panel de Administración")
     
     print("\n" + "="*60)
     print("🚀 INICIANDO CARGA DE FARMACOM")
