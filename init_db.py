@@ -38,6 +38,30 @@ CREATE TABLE IF NOT EXISTS configuraciones (
 )
 """)
 
+c.execute("""
+CREATE TABLE IF NOT EXISTS personal (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,         -- Nombres
+    dni TEXT,                     -- DNI
+    rol TEXT DEFAULT 'Trabajadora',-- Rol / Categoría
+    tienda TEXT,                  -- Local / Tienda
+    planilla TEXT,                -- Planilla
+    af TEXT,                      -- Af
+    activo INTEGER DEFAULT 1
+)
+""")
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS ventas_mensuales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    personal_id INTEGER,
+    mes INTEGER,       -- 1-12
+    anio INTEGER,      -- 2024, 2025...
+    monto REAL DEFAULT 0,
+    FOREIGN KEY(personal_id) REFERENCES personal(id)
+)
+""")
+
 # Insertar configuraciones por defecto
 configuraciones_iniciales = [
     ('farmacom_user', os.getenv("FARMACOM_USER", "")),
@@ -51,6 +75,25 @@ configuraciones_iniciales = [
 
 for clave, valor in configuraciones_iniciales:
     c.execute("INSERT OR IGNORE INTO configuraciones (clave, valor) VALUES (?, ?)", (clave, valor))
+
+# Insertar personal por defecto si la tabla está vacía
+c.execute("SELECT COUNT(*) FROM personal")
+if c.fetchone()[0] == 0:
+    empleados_iniciales = [
+        ('ADMINISTRADOR PRINCIPAL', 'Administrador', 'Oficina'),
+        ('QUIMICO FARMACEUTICO T1', 'QF', 'Tienda 1'),
+        ('QUIMICO FARMACEUTICO T2', 'QF', 'Tienda 2'),
+        ('TRABAJADORA 1', 'Trabajadora', 'Tienda 1'),
+        ('TRABAJADORA 2', 'Trabajadora', 'Tienda 1'),
+        ('TRABAJADORA 3', 'Trabajadora', 'Tienda 1'),
+        ('TRABAJADORA 4', 'Trabajadora', 'Tienda 1'),
+        ('TRABAJADORA 5', 'Trabajadora', 'Tienda 2'),
+        ('TRABAJADORA 6', 'Trabajadora', 'Tienda 2'),
+        ('TRABAJADORA 7', 'Trabajadora', 'Tienda 2'),
+        ('TRABAJADORA 8', 'Trabajadora', 'Tienda 2'),
+    ]
+    for nombre, rol, tienda in empleados_iniciales:
+        c.execute("INSERT INTO personal (nombre, rol, tienda) VALUES (?, ?, ?)", (nombre, rol, tienda))
 
 # Insertar usuario admin por defecto si no existe
 default_username = os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR")

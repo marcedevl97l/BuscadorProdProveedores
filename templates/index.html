@@ -29,6 +29,9 @@
                 <a href="#" class="nav-item" onclick="toggleCart(); return false;">
                     <span>🛒</span> Carrito (<span id="cart-count">0</span>)
                 </a>
+                <a href="/reportes" class="nav-item">
+                    <span>📊</span> Reportes
+                </a>
                 {% if current_user.username == 'SUPERVISOR' %}
                 <a href="/admin" class="nav-item">
                     <span>⚙️</span> Administración

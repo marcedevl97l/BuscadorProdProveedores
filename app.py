@@ -423,5 +423,100 @@ def run_process():
 
     return jsonify({'status': 'error', 'message': 'Acción no reconocida'})
 
+@app.route("/reportes")
+@login_required
+def reportes():
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    
+    # Obtener el personal con nuevos campos (incluyendo ocupación)
+    c.execute("SELECT id, nombre, dni, rol, tienda, planilla, af, ocupacion FROM personal WHERE activo = 1 ORDER BY ocupacion, nombre")
+    personal = [{'id': row[0], 'nombre': row[1], 'dni': row[2], 'rol': row[3], 'tienda': row[4], 'planilla': row[5], 'af': row[6], 'ocupacion': row[7]} for row in c.fetchall()]
+    
+    # Obtener ventas del mes actual
+    mes_actual = datetime.now().month
+    anio_actual = datetime.now().year
+    
+    c.execute("""
+        SELECT p.nombre, v.monto, p.tienda, p.rol
+        FROM personal p
+        LEFT JOIN ventas_mensuales v ON p.id = v.personal_id 
+        AND v.mes = ? AND v.anio = ?
+        WHERE p.activo = 1
+        ORDER BY v.monto DESC
+    """, (mes_actual, anio_actual))
+    
+    ventas = []
+    total_mes = 0
+    for row in c.fetchall():
+        monto = row[1] if row[1] is not None else 0
+        ventas.append({
+            'nombre': row[0],
+            'monto': monto,
+            'tienda': row[2],
+            'rol': row[3]
+        })
+        total_mes += monto
+        
+    conn.close()
+    return render_template("reportes.html", 
+                         personal=personal, 
+                         ventas=ventas, 
+                         total_mes=total_mes,
+                         mes=mes_actual,
+                         anio=anio_actual)
+
+@app.route("/api/personal", methods=["POST"])
+@login_required
+def api_personal():
+    if current_user.username != os.getenv("DEFAULT_ADMIN_USER", "SUPERVISOR"):
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
+        
+    data = request.get_json()
+    nombre = data.get('nombre')
+    dni = data.get('dni')
+    rol = data.get('rol', 'Trabajadora')
+    tienda = data.get('tienda')
+    planilla = data.get('planilla')
+    af = data.get('af')
+    ocupacion = data.get('ocupacion', 'vendedor')
+    
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("INSERT INTO personal (nombre, dni, rol, tienda, planilla, af, ocupacion) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+              (nombre, dni, rol, tienda, planilla, af, ocupacion))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'status': 'success'})
+
+@app.route("/api/ventas", methods=["POST"])
+@login_required
+def api_ventas():
+    # Solo el admin puede registrar ventas (o cualquier usuario logueado según requerimiento)
+    data = request.get_json()
+    personal_id = data.get('personal_id')
+    monto = data.get('monto')
+    mes = data.get('mes')
+    anio = data.get('anio')
+    
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    
+    # Verificar si ya existe registro para ese mes/anio/persona
+    c.execute("SELECT id FROM ventas_mensuales WHERE personal_id = ? AND mes = ? AND anio = ?", (personal_id, mes, anio))
+    existente = c.fetchone()
+    
+    if existente:
+        c.execute("UPDATE ventas_mensuales SET monto = ? WHERE id = ?", (monto, existente[0]))
+    else:
+        c.execute("INSERT INTO ventas_mensuales (personal_id, mes, anio, monto) VALUES (?, ?, ?, ?)", 
+                 (personal_id, mes, anio, monto))
+                 
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'status': 'success'})
+
 if __name__ == "__main__":
     app.run(debug=True)
